@@ -16,7 +16,6 @@ def generate_stoic_script():
         model='gemini-2.5-flash',
         contents="Give me one short, powerful, viral Stoic quote by Marcus Aurelius or Seneca about resilience. Output ONLY the quote, no conversational intro, no hashtags, no newlines."
     )
-    # Strip quotes and keep it on a clean single line
     return response.text.strip().replace('"', '').replace('\n', ' ')
 
 def fetch_free_background_video():
@@ -42,23 +41,32 @@ async def generate_voiceover(text, output_audio_path):
     await communicate.save(output_audio_path)
 
 def render_final_video(video_url, audio_path, script_text, output_video_path):
-    """Downloads assets and uses FFmpeg to burn text and combine audio"""
+    """Downloads assets and uses FFmpeg to burn text from a secure file"""
     print("📥 Downloading raw video asset from Pexels...")
     video_data = requests.get(video_url).content
     with open("raw_input.mp4", "wb") as f:
         f.write(video_data)
         
-    print("🎬 FFmpeg Compiling: Injecting voiceover and rendering text overlay...")
-    
-    # ADVANCED ESCAPING: Escapes backslashes, single quotes, colons, AND commas so FFmpeg treats it as pure string text
-    clean_text = script_text.replace('\\', '\\\\').replace("'", "'\\\\''").replace(':', '\\:').replace(',', '\\,')
+    print("📝 Saving script text to a clean external file for FFmpeg...")
+    # Wrap text cleanly into lines of roughly 4 words each for readability
+    words = script_text.split()
+    wrapped_lines = []
+    for i in range(0, len(words), 4):
+        wrapped_lines.append(" ".join(words[i:i+4]))
+    formatted_text = "\n".join(wrapped_lines)
 
-    # Standard single-line clean text injection for FFmpeg
+    # Save to text file (escaped properly for FFmpeg drawtext filter)
+    safe_text = formatted_text.replace(":", "\\:").replace("'", "'\\\\''")
+    with open("quote.txt", "w", encoding="utf-8") as f:
+        f.write(safe_text)
+
+    print("🎬 FFmpeg Compiling: Injecting voiceover and rendering text file overlay...")
+    # By using textfile='quote.txt', FFmpeg completely avoids command-line punctuation bugs!
     cmd = [
         "ffmpeg", "-y",
         "-i", "raw_input.mp4",
         "-i", audio_path,
-        "-filter_complex", f"[0:v]scale=720:1280,setsar=1,drawtext=text='{clean_text}':fontcolor=white:fontsize=32:box=1:boxcolor=black@0.6:boxborderw=15:x=(w-text_w)/2:y=(h-text_h)/2:shortest=1[v]",
+        "-filter_complex", "[0:v]scale=720:1280,setsar=1,drawtext=textfile=quote.txt:fontcolor=white:fontsize=34:box=1:boxcolor=black@0.6:boxborderw=20:x=(w-text_w)/2:y=(h-text_h)/2:shortest=1[v]",
         "-map", "[v]",
         "-map", "1:a",
         "-c:v", "libx264",

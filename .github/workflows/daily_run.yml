@@ -2,9 +2,8 @@ name: Daily Faceless Video Arbitrage Engine
 
 on:
   schedule:
-    # Fires automatically every single day at 6:00 PM UTC
     - cron: '0 18 * * *'
-  workflow_dispatch: # Allows manual 1-click testing
+  workflow_dispatch: 
 
 jobs:
   build-and-run:
@@ -19,11 +18,15 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Install System Video Components
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
       - name: Inject Pipeline Dependencies
         run: |
           pip install --upgrade pip
-          pip list
-          pip install requests google-genai
+          pip install requests google-genai edge-tts
 
       - name: Execute Autonomous Production Circuit
         env:

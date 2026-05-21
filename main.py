@@ -2,20 +2,21 @@ import os
 import requests
 import random
 import subprocess
+import asyncio
 from google import genai
+import edge_tts
 
 # Initialize free Gemini client from secure GitHub Vault
-# Note: The new google-genai SDK automatically picks up GEMINI_API_KEY from the environment
 client = genai.Client()
 PEXELS_KEY = os.environ.get("PEXELS_API_KEY")
 
 def generate_stoic_script():
-    """Generates a high-retention quote and script for $0 using Gemini Flash"""
+    """Generates a high-retention quote for $0 using Gemini Flash"""
     response = client.models.generate_content(
         model='gemini-2.5-flash',
-        contents="Give me one powerful, viral Stoic quote by Marcus Aurelius or Seneca about resilience. Output ONLY the quote, no conversational intro."
+        contents="Give me one powerful, viral Stoic quote by Marcus Aurelius or Seneca about resilience. Output ONLY the quote, no conversational intro, no hashtags."
     )
-    return response.text.strip()
+    return response.text.strip().replace('"', '')
 
 def fetch_free_background_video():
     """Pulls high-definition vertical video clips completely for free"""
@@ -26,7 +27,6 @@ def fetch_free_background_video():
     response = requests.get(url, headers=headers).json()
     video_list = response.get("videos", [])
     
-    # Extract the direct download link for the vertical video asset
     if video_list:
         selected_video = random.choice(video_list)
         video_files = selected_video.get("video_files", [])
@@ -35,25 +35,69 @@ def fetch_free_background_video():
                 return f.get("link")
     return "https://player.vimeo.com/external/371433846.sd.mp4?s=236da2f3c054ba2d11c300078a635811c08e92cb&profile_id=165"
 
+async def generate_voiceover(text, output_audio_path):
+    """Generates a deep, cinematic male voiceover completely for free"""
+    # Using a premium, clear deep voice (en-US-ChristopherNeural or en-GB-RyanNeural)
+    communicate = edge_tts.Communicate(text, "en-US-ChristopherNeural", rate="-10%")
+    await communicate.save(output_audio_path)
+
+def render_final_video(video_url, audio_path, script_text, output_video_path):
+    """Downloads assets and uses FFmpeg to burn text and combine audio"""
+    print("📥 Downloading raw video asset from Pexels...")
+    video_data = requests.get(video_url).content
+    with open("raw_input.mp4", "wb") as f:
+        f.write(video_data)
+        
+    print("🎬 FFmpeg Compiling: Injecting voiceover and rendering text overlay...")
+    
+    # Format the text so it wraps cleanly in the middle of a 9:16 Shorts frame
+    wrapped_text = ""
+    words = script_text.split()
+    for i, word in enumerate(words):
+        wrapped_text += word + " "
+        if (i + 1) % 4 == 0:
+            wrapped_text += "\n"
+            
+    # Clean up double backslashes for text processing
+    wrapped_text = wrapped_text.replace("'", "'\\\\''").replace(":", "\\:")
+
+    # Build the full FFmpeg execution command
+    # This trims the background video to match the audio length, stretches audio, and draws clean white text with a dark background shadow
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", "raw_input.mp4",
+        "-i", audio_path,
+        "-filter_complex", f"[0:v]scale=720:1280,setsar=1,drawtext=text='{wrapped_text}':fontcolor=white:fontsize=36:box=1:boxcolor=black@0.5:boxborderw=10:x=(w-text_w)/2:y=(h-text_h)/2:shortest=1[v]",
+        "-map", "[v]",
+        "-map", "1:a",
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-shortest",
+        output_video_path
+    ]
+    
+    subprocess.run(cmd, check=True)
+
 def assemble_and_publish():
-    """Triggers production pipeline and delivers it to the platforms"""
+    """Triggers real production pipeline and delivers it to the upload structure"""
     script_text = generate_stoic_script()
     video_url = fetch_free_background_video()
     
-    print(f"--- SCRIPT GENERATED ---\n{script_text}")
+    print(f"--- REAL SCRIPT GENERATED ---\n{script_text}")
     print(f"--- VIDEO SOURCE LOCATED ---\n{video_url}")
     
-    # Manifest data structure sent via standard Webhook payload to the channels
-    payload = {
-        "title": "Daily Stoic Discipline #shorts #motivation #philosophy",
-        "script": script_text,
-        "video_asset": video_url,
-        "voice_style": "Male Adam Professional"
-    }
+    audio_file = "voiceover.mp3"
+    final_output = "output.mp4"
     
-    print("Execution complete. Ready for programmatic broadcast routing pipeline.")
+    # Run the asynchronous text-to-speech task
+    asyncio.run(generate_voiceover(script_text, audio_file))
     
-    # Programmatically runs terminal-level uploads directly from the GitHub Cloud container bypass
+    # Compile text, sound, and background video into final mp4 file
+    render_final_video(video_url, audio_file, script_text, final_output)
+    
+    print("✨ Video production engine finished rendering output.mp4 perfectly!")
+    
+    # Pass the actual rendered file directly into your command-line platform framework
     subprocess.run(["python3", "cli.py", "upload", "--user", "ancient_discipline", "-v", "output.mp4", "-t", "Daily Stoic Discipline #motivation"])
 
 if __name__ == "__main__":

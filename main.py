@@ -53,7 +53,7 @@ def assemble_and_publish():
     print("Execution complete. Ready for programmatic broadcast routing pipeline.")
     
     # Programmatically runs terminal-level uploads directly from the GitHub Cloud container bypass
-    subprocess.run(["python3", "cli.py", "upload", "--user", "your_channel_name", "-v", "output.mp4", "-t", "Daily Stoic Discipline #motivation"])
+    subprocess.run(["python3", "cli.py", "upload", "--user", "ancient_discipline", "-v", "output.mp4", "-t", "Daily Stoic Discipline #motivation"])
 
 if __name__ == "__main__":
     assemble_and_publish()

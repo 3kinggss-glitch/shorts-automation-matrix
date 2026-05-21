@@ -41,36 +41,33 @@ async def generate_voiceover(text, output_audio_path):
     await communicate.save(output_audio_path)
 
 def render_final_video(video_url, audio_path, script_text, output_video_path):
-    """Downloads assets and uses FFmpeg to burn text from an absolute path"""
+    """Downloads assets and uses FFmpeg to burn text cleanly from a file path"""
     print("📥 Downloading raw video asset from Pexels...")
     video_data = requests.get(video_url).content
     with open("raw_input.mp4", "wb") as f:
         f.write(video_data)
         
-    print("txt Saving script text to a clean external file...")
+    print("📝 Saving script text to a clean external file...")
     words = script_text.split()
     wrapped_lines = []
     for i in range(0, len(words), 4):
         wrapped_lines.append(" ".join(words[i:i+4]))
     formatted_text = "\n".join(wrapped_lines)
 
-    # Use a secure, absolute path for the text file so the server never loses it
     base_dir = os.getcwd()
     txt_path = os.path.join(base_dir, "quote.txt")
-    
     with open(txt_path, "w", encoding="utf-8") as f:
         f.write(formatted_text)
 
-    print(f"🎬 FFmpeg Compiling: Processing overlay using asset path: {txt_path}")
-    
-    # Clean file pathway syntax specifically for Linux environments
+    print("🎬 FFmpeg Compiling: Processing overlay layers...")
     safe_txt_path = txt_path.replace(":", "\\:").replace("'", "'\\\\''")
 
+    # Fixed: Moved shortest=1 out of drawtext and placed it at the command level
     cmd = [
         "ffmpeg", "-y",
         "-i", "raw_input.mp4",
         "-i", audio_path,
-        "-filter_complex", f"[0:v]scale=720:1280,setsar=1,drawtext=textfile='{safe_txt_path}':fontcolor=white:fontsize=34:box=1:boxcolor=black@0.6:boxborderw=20:x=(w-text_w)/2:y=(h-text_h)/2:shortest=1[v]",
+        "-filter_complex", f"[0:v]scale=720:1280,setsar=1,drawtext=textfile='{safe_txt_path}':fontcolor=white:fontsize=34:box=1:boxcolor=black@0.6:boxborderw=20:x=(w-text_w)/2:y=(h-text_h)/2[v]",
         "-map", "[v]",
         "-map", "1:a",
         "-c:v", "libx264",

@@ -1,6 +1,7 @@
 import os
 import requests
 import random
+import subprocess
 from openai import OpenAI
 
 # Initialize free API clients from secure GitHub Vault
@@ -31,7 +32,7 @@ def fetch_free_background_video():
         for f in video_files:
             if "mp4" in f.get("file_type", "") and f.get("width") == 720:
                 return f.get("link")
-    return "https://player.vimeo.com/external/371433846.sd.mp4?s=236da2f3c054ba2d11c300078a635811c08e92cb&profile_id=165" # High-quality fallback asset
+    return "https://player.vimeo.com/external/371433846.sd.mp4?s=236da2f3c054ba2d11c300078a635811c08e92cb&profile_id=165"
 
 def assemble_and_publish():
     """Triggers production pipeline and delivers it to the platforms"""
@@ -49,8 +50,10 @@ def assemble_and_publish():
         "voice_style": "Male Adam Professional"
     }
     
-    # Inside Phase 5, your native social tokens plug right into this endpoint hook
     print("Execution complete. Ready for programmatic broadcast routing pipeline.")
+    
+    # Programmatically runs terminal-level uploads directly from the GitHub Cloud container bypass
+    subprocess.run(["python3", "cli.py", "upload", "--user", "your_channel_name", "-v", "output.mp4", "-t", "Daily Stoic Discipline #motivation"])
 
 if __name__ == "__main__":
     assemble_and_publish()

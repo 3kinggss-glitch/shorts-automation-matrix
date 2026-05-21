@@ -2,19 +2,20 @@ import os
 import requests
 import random
 import subprocess
-from openai import OpenAI
+from google import genai
 
-# Initialize free API clients from secure GitHub Vault
-openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# Initialize free Gemini client from secure GitHub Vault
+# Note: The new google-genai SDK automatically picks up GEMINI_API_KEY from the environment
+client = genai.Client()
 PEXELS_KEY = os.environ.get("PEXELS_API_KEY")
 
 def generate_stoic_script():
-    """Generates a high-retention quote and script for $0"""
-    response = openai_client.chat.completions.create(
-        model="gpt-4o-mini",  # Highly efficient, lowest-cost/free tier model
-        messages=[{"role": "user", "content": "Give me one powerful, viral Stoic quote by Marcus Aurelius or Seneca about resilience. Output ONLY the quote, no conversational intro."}]
+    """Generates a high-retention quote and script for $0 using Gemini Flash"""
+    response = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents="Give me one powerful, viral Stoic quote by Marcus Aurelius or Seneca about resilience. Output ONLY the quote, no conversational intro."
     )
-    return response.choices[0].message.content
+    return response.text.strip()
 
 def fetch_free_background_video():
     """Pulls high-definition vertical video clips completely for free"""

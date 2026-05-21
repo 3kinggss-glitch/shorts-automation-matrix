@@ -41,32 +41,36 @@ async def generate_voiceover(text, output_audio_path):
     await communicate.save(output_audio_path)
 
 def render_final_video(video_url, audio_path, script_text, output_video_path):
-    """Downloads assets and uses FFmpeg to burn text from a secure file"""
+    """Downloads assets and uses FFmpeg to burn text from an absolute path"""
     print("📥 Downloading raw video asset from Pexels...")
     video_data = requests.get(video_url).content
     with open("raw_input.mp4", "wb") as f:
         f.write(video_data)
         
-    print("📝 Saving script text to a clean external file for FFmpeg...")
-    # Wrap text cleanly into lines of roughly 4 words each for readability
+    print("txt Saving script text to a clean external file...")
     words = script_text.split()
     wrapped_lines = []
     for i in range(0, len(words), 4):
         wrapped_lines.append(" ".join(words[i:i+4]))
     formatted_text = "\n".join(wrapped_lines)
 
-    # Save to text file (escaped properly for FFmpeg drawtext filter)
-    safe_text = formatted_text.replace(":", "\\:").replace("'", "'\\\\''")
-    with open("quote.txt", "w", encoding="utf-8") as f:
-        f.write(safe_text)
+    # Use a secure, absolute path for the text file so the server never loses it
+    base_dir = os.getcwd()
+    txt_path = os.path.join(base_dir, "quote.txt")
+    
+    with open(txt_path, "w", encoding="utf-8") as f:
+        f.write(formatted_text)
 
-    print("🎬 FFmpeg Compiling: Injecting voiceover and rendering text file overlay...")
-    # By using textfile='quote.txt', FFmpeg completely avoids command-line punctuation bugs!
+    print(f"🎬 FFmpeg Compiling: Processing overlay using asset path: {txt_path}")
+    
+    # Clean file pathway syntax specifically for Linux environments
+    safe_txt_path = txt_path.replace(":", "\\:").replace("'", "'\\\\''")
+
     cmd = [
         "ffmpeg", "-y",
         "-i", "raw_input.mp4",
         "-i", audio_path,
-        "-filter_complex", "[0:v]scale=720:1280,setsar=1,drawtext=textfile=quote.txt:fontcolor=white:fontsize=34:box=1:boxcolor=black@0.6:boxborderw=20:x=(w-text_w)/2:y=(h-text_h)/2:shortest=1[v]",
+        "-filter_complex", f"[0:v]scale=720:1280,setsar=1,drawtext=textfile='{safe_txt_path}':fontcolor=white:fontsize=34:box=1:boxcolor=black@0.6:boxborderw=20:x=(w-text_w)/2:y=(h-text_h)/2:shortest=1[v]",
         "-map", "[v]",
         "-map", "1:a",
         "-c:v", "libx264",
@@ -88,15 +92,10 @@ def assemble_and_publish():
     audio_file = "voiceover.mp3"
     final_output = "output.mp4"
     
-    # Run the voice generation task
     asyncio.run(generate_voiceover(script_text, audio_file))
-    
-    # Compile everything into a real video file
     render_final_video(video_url, audio_file, script_text, final_output)
     
     print("✨ Video production engine finished rendering output.mp4 perfectly!")
-    
-    # Send it to the active upload channel environment script
     subprocess.run(["python3", "cli.py", "upload", "--user", "ancient_discipline", "-v", "output.mp4", "-t", "Daily Stoic Discipline #motivation"])
 
 if __name__ == "__main__":

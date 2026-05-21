@@ -2,28 +2,31 @@ name: Daily Faceless Video Arbitrage Engine
 
 on:
   schedule:
-    # Explicit Cron configuration: Tells GitHub cloud servers to fire this automatically every single day at 6:00 PM UTC
+    # Fires automatically every single day at 6:00 PM UTC
     - cron: '0 18 * * *'
-  workflow_dispatch: # Allows you to manually trigger it with 1 click anytime you want to test it
+  workflow_dispatch: # Allows manual 1-click testing
 
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Check out the code matrix
-      uses: actions/checkout@v3
+      - name: Check out the code matrix
+        uses: actions/checkout@v3
 
-    - name: Initialize Free Python Environment
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      - name: Initialize Free Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    - name: Inject Pipeline Dependencies
-      run: |
-        pip install requests openai
+      - name: Inject Pipeline Dependencies
+        run: |
+          pip install --upgrade pip
+          pip list
+          pip install requests google-genai
 
-    - name: Execute Autonomous Production Circuit
-      env:
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-      run: python main.py
+      - name: Execute Autonomous Production Circuit
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+        run: python main.py

@@ -50,8 +50,8 @@ def render_final_video(video_url, audio_path, script_text, output_video_path):
         
     print("🎬 FFmpeg Compiling: Injecting voiceover and rendering text overlay...")
     
-    # Safe string cleaning for terminal execution
-    clean_text = script_text.replace("'", "").replace(":", " ")
+    # ADVANCED ESCAPING: Escapes backslashes, single quotes, colons, AND commas so FFmpeg treats it as pure string text
+    clean_text = script_text.replace('\\', '\\\\').replace("'", "'\\\\''").replace(':', '\\:').replace(',', '\\,')
 
     # Standard single-line clean text injection for FFmpeg
     cmd = [

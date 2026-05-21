@@ -14,9 +14,10 @@ def generate_stoic_script():
     """Generates a high-retention quote for $0 using Gemini Flash"""
     response = client.models.generate_content(
         model='gemini-2.5-flash',
-        contents="Give me one powerful, viral Stoic quote by Marcus Aurelius or Seneca about resilience. Output ONLY the quote, no conversational intro, no hashtags."
+        contents="Give me one short, powerful, viral Stoic quote by Marcus Aurelius or Seneca about resilience. Output ONLY the quote, no conversational intro, no hashtags, no newlines."
     )
-    return response.text.strip().replace('"', '')
+    # Strip quotes and keep it on a clean single line
+    return response.text.strip().replace('"', '').replace('\n', ' ')
 
 def fetch_free_background_video():
     """Pulls high-definition vertical video clips completely for free"""
@@ -37,7 +38,6 @@ def fetch_free_background_video():
 
 async def generate_voiceover(text, output_audio_path):
     """Generates a deep, cinematic male voiceover completely for free"""
-    # Using a premium, clear deep voice (en-US-ChristopherNeural or en-GB-RyanNeural)
     communicate = edge_tts.Communicate(text, "en-US-ChristopherNeural", rate="-10%")
     await communicate.save(output_audio_path)
 
@@ -50,24 +50,15 @@ def render_final_video(video_url, audio_path, script_text, output_video_path):
         
     print("🎬 FFmpeg Compiling: Injecting voiceover and rendering text overlay...")
     
-    # Format the text so it wraps cleanly in the middle of a 9:16 Shorts frame
-    wrapped_text = ""
-    words = script_text.split()
-    for i, word in enumerate(words):
-        wrapped_text += word + " "
-        if (i + 1) % 4 == 0:
-            wrapped_text += "\n"
-            
-    # Clean up double backslashes for text processing
-    wrapped_text = wrapped_text.replace("'", "'\\\\''").replace(":", "\\:")
+    # Safe string cleaning for terminal execution
+    clean_text = script_text.replace("'", "").replace(":", " ")
 
-    # Build the full FFmpeg execution command
-    # This trims the background video to match the audio length, stretches audio, and draws clean white text with a dark background shadow
+    # Standard single-line clean text injection for FFmpeg
     cmd = [
         "ffmpeg", "-y",
         "-i", "raw_input.mp4",
         "-i", audio_path,
-        "-filter_complex", f"[0:v]scale=720:1280,setsar=1,drawtext=text='{wrapped_text}':fontcolor=white:fontsize=36:box=1:boxcolor=black@0.5:boxborderw=10:x=(w-text_w)/2:y=(h-text_h)/2:shortest=1[v]",
+        "-filter_complex", f"[0:v]scale=720:1280,setsar=1,drawtext=text='{clean_text}':fontcolor=white:fontsize=32:box=1:boxcolor=black@0.6:boxborderw=15:x=(w-text_w)/2:y=(h-text_h)/2:shortest=1[v]",
         "-map", "[v]",
         "-map", "1:a",
         "-c:v", "libx264",
@@ -89,15 +80,15 @@ def assemble_and_publish():
     audio_file = "voiceover.mp3"
     final_output = "output.mp4"
     
-    # Run the asynchronous text-to-speech task
+    # Run the voice generation task
     asyncio.run(generate_voiceover(script_text, audio_file))
     
-    # Compile text, sound, and background video into final mp4 file
+    # Compile everything into a real video file
     render_final_video(video_url, audio_file, script_text, final_output)
     
     print("✨ Video production engine finished rendering output.mp4 perfectly!")
     
-    # Pass the actual rendered file directly into your command-line platform framework
+    # Send it to the active upload channel environment script
     subprocess.run(["python3", "cli.py", "upload", "--user", "ancient_discipline", "-v", "output.mp4", "-t", "Daily Stoic Discipline #motivation"])
 
 if __name__ == "__main__":

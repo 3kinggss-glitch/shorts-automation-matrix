@@ -32,10 +32,12 @@ def generate_viral_script():
                 model='gemini-2.0-flash',
                 contents=prompt
             )
-            return response.text.strip(), state
+            # Ensure we have text to return
+            if response.text:
+                return response.text.strip(), state
         except Exception as e:
             if "429" in str(e):
-                wait_time = (attempt + 1) * 15 # 15s, 30s, 45s, 60s, 75s
+                wait_time = (attempt + 1) * 20 # Increased wait to be safer
                 print(f"⚠️ API Limit hit. Waiting {wait_time}s to cool down...")
                 time.sleep(wait_time)
             else:
@@ -47,7 +49,7 @@ def fetch_free_background_video():
     url = f"https://api.pexels.com/videos/search?query={query}&per_page=10&orientation=portrait"
     headers = {"Authorization": PEXELS_KEY}
     try:
-        response = requests.get(url, headers=headers).json()
+        response = requests.get(url, headers=headers, timeout=10).json()
         video_list = response.get("videos", [])
         if video_list:
             selected = random.choice(video_list)
@@ -65,7 +67,7 @@ async def generate_voiceover(text, output_path):
 def render_final_video(video_url, audio_path, script_text, output_path):
     print("📥 Downloading video asset...")
     with open("raw_input.mp4", "wb") as f:
-        f.write(requests.get(video_url).content)
+        f.write(requests.get(video_url, timeout=20).content)
         
     with open("quote.txt", "w", encoding="utf-8") as f:
         words = script_text.split()
@@ -73,6 +75,10 @@ def render_final_video(video_url, audio_path, script_text, output_path):
             f.write(" ".join(words[i:i+5]) + "\n")
 
     print("🎬 Rendering video...")
+    # Clean up old output if it exists
+    if os.path.exists(output_path):
+        os.remove(output_path)
+
     cmd = [
         "ffmpeg", "-y",
         "-i", "raw_input.mp4",
@@ -91,6 +97,7 @@ def assemble_and_publish():
     try:
         script, state = generate_viral_script()
         video_url = fetch_free_background_video()
+        
         audio_file = "voiceover.mp3"
         final_output = "output.mp4"
         
@@ -99,10 +106,14 @@ def assemble_and_publish():
         
         tag = f"Exploring {state} #YorubaHeritage #Nigeria"
         print(f"✨ Production Complete! Uploading for {state}...")
-        # Note: Ensure your cli.py handles the arguments correctly as per your setup
+        
+        # This is the command that triggers the actual upload
         subprocess.run(["python3", "cli.py", "upload", "--user", "ancient_discipline", "-v", "output.mp4", "-t", tag], check=True)
+        
     except Exception as e:
         print(f"❌ Production failed: {e}")
+        # Re-raise to ensure GitHub Actions flags the run as failed
+        raise e 
 
 if __name__ == "__main__":
     assemble_and_publish()

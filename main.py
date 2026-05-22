@@ -21,28 +21,28 @@ def get_daily_state():
     return YORUBA_STATES[day_of_year % len(YORUBA_STATES)]
 
 def generate_viral_script():
-    """Generates a state-specific script with aggressive backoff to avoid 429 errors."""
+    """Generates a state-specific script with extended backoff to avoid 429 errors."""
     state = get_daily_state()
     prompt = f"Write a 45-second script about {state}, Nigeria. Hook, cultural fact, conclusion. No intro. Output text only."
     
-    # Retry logic: Try 5 times with increasing delay
-    for attempt in range(5):
+    # Increased patience: Try 6 times with a longer exponential backoff
+    for attempt in range(6):
         try:
             response = client.models.generate_content(
                 model='gemini-2.0-flash',
                 contents=prompt
             )
-            # Ensure we have text to return
             if response.text:
                 return response.text.strip(), state
         except Exception as e:
             if "429" in str(e):
-                wait_time = (attempt + 1) * 20 # Increased wait to be safer
+                # Wait longer: 20s, 40s, 60s, 80s, 100s, 120s
+                wait_time = (attempt + 1) * 20 
                 print(f"⚠️ API Limit hit. Waiting {wait_time}s to cool down...")
                 time.sleep(wait_time)
             else:
                 raise e
-    raise Exception("API Quota exceeded after 5 attempts.")
+    raise Exception("API Quota exceeded after 6 attempts.")
 
 def fetch_free_background_video():
     query = random.choice(["nature nigeria", "city life", "african landscape", "vibrant culture"])
@@ -75,7 +75,6 @@ def render_final_video(video_url, audio_path, script_text, output_path):
             f.write(" ".join(words[i:i+5]) + "\n")
 
     print("🎬 Rendering video...")
-    # Clean up old output if it exists
     if os.path.exists(output_path):
         os.remove(output_path)
 
@@ -107,12 +106,10 @@ def assemble_and_publish():
         tag = f"Exploring {state} #YorubaHeritage #Nigeria"
         print(f"✨ Production Complete! Uploading for {state}...")
         
-        # This is the command that triggers the actual upload
         subprocess.run(["python3", "cli.py", "upload", "--user", "ancient_discipline", "-v", "output.mp4", "-t", tag], check=True)
         
     except Exception as e:
         print(f"❌ Production failed: {e}")
-        # Re-raise to ensure GitHub Actions flags the run as failed
         raise e 
 
 if __name__ == "__main__":

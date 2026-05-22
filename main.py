@@ -12,7 +12,7 @@ import edge_tts
 client = genai.Client()
 PEXELS_KEY = os.environ.get("PEXELS_API_KEY")
 
-# Yoruba states list - Add/Remove as you like
+# Yoruba states rotation logic
 YORUBA_STATES = ["Oyo", "Osun", "Ogun", "Ekiti", "Lagos", "Ondo", "Kwara", "Kogi"]
 
 def get_daily_state():
@@ -46,13 +46,16 @@ def fetch_free_background_video():
     query = random.choice(["nature nigeria", "city life", "african landscape", "vibrant culture"])
     url = f"https://api.pexels.com/videos/search?query={query}&per_page=10&orientation=portrait"
     headers = {"Authorization": PEXELS_KEY}
-    response = requests.get(url, headers=headers).json()
-    video_list = response.get("videos", [])
-    if video_list:
-        selected = random.choice(video_list)
-        for f in selected.get("video_files", []):
-            if f.get("width") == 720:
-                return f.get("link")
+    try:
+        response = requests.get(url, headers=headers).json()
+        video_list = response.get("videos", [])
+        if video_list:
+            selected = random.choice(video_list)
+            for f in selected.get("video_files", []):
+                if f.get("width") == 720:
+                    return f.get("link")
+    except Exception as e:
+        print(f"⚠️ Pexels fetch failed, using fallback: {e}")
     return "https://player.vimeo.com/external/371433846.sd.mp4?s=236da2f3c054ba2d11c300078a635811c08e92cb&profile_id=165"
 
 async def generate_voiceover(text, output_path):
@@ -96,6 +99,7 @@ def assemble_and_publish():
         
         tag = f"Exploring {state} #YorubaHeritage #Nigeria"
         print(f"✨ Production Complete! Uploading for {state}...")
+        # Note: Ensure your cli.py handles the arguments correctly as per your setup
         subprocess.run(["python3", "cli.py", "upload", "--user", "ancient_discipline", "-v", "output.mp4", "-t", tag], check=True)
     except Exception as e:
         print(f"❌ Production failed: {e}")

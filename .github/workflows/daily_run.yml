@@ -2,19 +2,22 @@ name: Daily Faceless Video Arbitrage Engine
 
 on:
   schedule:
-    - cron: '0 18 * * *'
+    - cron: '0 18 * * *' # Runs daily at 6 PM UTC
   workflow_dispatch: 
 
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
+    # This environment variable forces the runner to handle current/future Node updates smoothly
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # Updated to v4 for Node 24 support
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5 # Updated to v5 for better compatibility
         with:
           python-version: '3.10'
 

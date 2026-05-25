@@ -19,10 +19,15 @@ def get_daily_state():
     return YORUBA_STATES[day_of_year % len(YORUBA_STATES)]
 
 def generate_viral_script():
-    """Generates a shorter, 30-second script to minimize API resource usage."""
     state = get_daily_state()
-    # Shorter prompt = less processing for the API = higher success rate
-    prompt = f"Write a 30-second script about {state}, Nigeria. Give 3 short, fascinating facts. No intro. Output text only."
+    # Optimized prompt with Call-to-Action
+    prompt = (
+        f"Write a 30-second script about {state}, Nigeria. "
+        "1. Start with a high-energy, shocking hook. "
+        "2. Provide 2 fascinating, lesser-known cultural facts. "
+        "3. End with a clear call to action: 'Subscribe to see more of our Yoruba heritage!' "
+        "Use an enthusiastic, conversational tone. No intro. Output text only."
+    )
     
     for attempt in range(6):
         try:
@@ -34,7 +39,7 @@ def generate_viral_script():
                 return response.text.strip(), state
         except Exception as e:
             if "429" in str(e):
-                wait_time = (attempt + 1) * 30 # Increased wait to stay under rate limits
+                wait_time = (attempt + 1) * 30
                 print(f"⚠️ API busy. Cooldown {wait_time}s...")
                 time.sleep(wait_time)
             else:
@@ -90,7 +95,7 @@ def assemble_and_publish():
         render_final_video(video_url, "voiceover.mp3", script, "output.mp4")
         
         tag = f"Exploring {state} #YorubaHeritage #Nigeria"
-        subprocess.run(["python3", "cli.py", "upload", "--user", "ancient_discipline", "-v", "output.mp4", "-t", tag], check=True)
+        subprocess.run(["python3", "cli.py", "upload", "-v", "output.mp4", "-t", tag], check=True)
     except Exception as e:
         with open(lock_file, "w") as f: f.write("failed")
         raise e

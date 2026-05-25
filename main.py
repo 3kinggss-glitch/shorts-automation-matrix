@@ -20,7 +20,6 @@ def get_daily_state():
 
 def generate_viral_script():
     state = get_daily_state()
-    # Optimized prompt with Call-to-Action
     prompt = (
         f"Write a 30-second script about {state}, Nigeria. "
         "1. Start with a high-energy, shocking hook. "
@@ -67,8 +66,10 @@ async def generate_voiceover(text, output_path):
     await communicate.save(output_path)
 
 def render_final_video(video_url, audio_path, script_text, output_path):
+    # Ensure raw_input.mp4 is downloaded
     with open("raw_input.mp4", "wb") as f:
         f.write(requests.get(video_url, timeout=20).content)
+    
     with open("quote.txt", "w", encoding="utf-8") as f:
         words = script_text.split()
         for i in range(0, len(words), 5):
@@ -82,10 +83,10 @@ def render_final_video(video_url, audio_path, script_text, output_path):
     subprocess.run(cmd, check=True)
 
 def assemble_and_publish():
-    # Stop if we already failed today
+    # 1. Check if we already hit the limit today to save quota
     lock_file = f"api_lock_{datetime.date.today()}.txt"
     if os.path.exists(lock_file):
-        print("🛑 Already hit limit today. Skipping.")
+        print("🛑 API limit already hit today. Skipping run to save quota.")
         return
 
     try:
@@ -96,8 +97,12 @@ def assemble_and_publish():
         
         tag = f"Exploring {state} #YorubaHeritage #Nigeria"
         subprocess.run(["python3", "cli.py", "upload", "-v", "output.mp4", "-t", tag], check=True)
+        
     except Exception as e:
-        with open(lock_file, "w") as f: f.write("failed")
+        # 2. Create lock file if API is exhausted
+        if "429" in str(e) or "Quota exceeded" in str(e):
+            with open(lock_file, "w") as f:
+                f.write("exhausted")
         raise e
 
 if __name__ == "__main__":

@@ -28,7 +28,8 @@ def generate_viral_script():
         "Use an enthusiastic, conversational tone. No intro. Output text only."
     )
     
-    for attempt in range(6):
+    # Attempt logic with quota protection
+    for attempt in range(3): # Reduced retries to avoid wasting quota
         try:
             response = client.models.generate_content(
                 model='gemini-2.0-flash',
@@ -37,28 +38,26 @@ def generate_viral_script():
             if response.text:
                 return response.text.strip(), state
         except Exception as e:
-            if "429" in str(e):
-                wait_time = (attempt + 1) * 30
-                print(f"⚠️ API busy. Cooldown {wait_time}s...")
-                time.sleep(wait_time)
-            else:
-                raise e
-    raise Exception("API Quota exceeded.")
+            if "429" in str(e) or "quota" in str(e).lower():
+                print(f"⚠️ API Quota hit on attempt {attempt+1}. Stopping.")
+                raise Exception("API Quota exceeded.")
+            time.sleep(10)
+    raise Exception("Failed to generate script after retries.")
 
 def fetch_free_background_video():
     query = random.choice(["nigeria scenery", "african life", "lagos city", "cultural heritage"])
     url = f"https://api.pexels.com/videos/search?query={query}&per_page=5&orientation=portrait"
     headers = {"Authorization": PEXELS_KEY}
     try:
-        response = requests.get(url, headers=headers, timeout=10).json()
+        response = requests.get(url, headers=headers, timeout=15).json()
         video_list = response.get("videos", [])
         if video_list:
             selected = random.choice(video_list)
             for f in selected.get("video_files", []):
-                if f.get("width") == 720:
+                if f.get("width") == 720 or f.get("width") == 1080:
                     return f.get("link")
-    except:
-        pass
+    except Exception as e:
+        print(f"Video fetch error: {e}")
     return "https://player.vimeo.com/external/371433846.sd.mp4?s=236da2f3c054ba2d11c300078a635811c08e92cb&profile_id=165"
 
 async def generate_voiceover(text, output_path):
@@ -66,9 +65,10 @@ async def generate_voiceover(text, output_path):
     await communicate.save(output_path)
 
 def render_final_video(video_url, audio_path, script_text, output_path):
-    # Ensure raw_input.mp4 is downloaded
+    # Download with error handling
+    response = requests.get(video_url, timeout=30)
     with open("raw_input.mp4", "wb") as f:
-        f.write(requests.get(video_url, timeout=20).content)
+        f.write(response.content)
     
     with open("quote.txt", "w", encoding="utf-8") as f:
         words = script_text.split()
@@ -83,10 +83,9 @@ def render_final_video(video_url, audio_path, script_text, output_path):
     subprocess.run(cmd, check=True)
 
 def assemble_and_publish():
-    # 1. Check if we already hit the limit today to save quota
     lock_file = f"api_lock_{datetime.date.today()}.txt"
     if os.path.exists(lock_file):
-        print("🛑 API limit already hit today. Skipping run to save quota.")
+        print("🛑 API limit already hit today. Skipping.")
         return
 
     try:
@@ -99,10 +98,9 @@ def assemble_and_publish():
         subprocess.run(["python3", "cli.py", "upload", "-v", "output.mp4", "-t", tag], check=True)
         
     except Exception as e:
-        # 2. Create lock file if API is exhausted
         if "429" in str(e) or "Quota exceeded" in str(e):
             with open(lock_file, "w") as f:
-                f.write("exhausted")
+                f.write("failed")
         raise e
 
 if __name__ == "__main__":

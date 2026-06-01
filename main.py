@@ -1,40 +1,21 @@
-import os
-import requests
-import random
-import subprocess
-import asyncio
-import time
-import datetime
-import glob # Added for cleanup
-from google import genai
-import edge_tts
-
-# ... (Keep all your existing setup, get_daily_state, generate_viral_script, 
-# fetch_free_background_video, generate_voiceover, and render_final_video functions exactly as they are) ...
-
 def assemble_and_publish():
+    # 1. Create a "lock file" name for today
     lock_file = f"api_lock_{datetime.date.today()}.txt"
+    
+    # 2. Check if we already failed today
     if os.path.exists(lock_file):
-        print("🛑 API limit already hit today. Skipping.")
+        print("🛑 API limit already hit today. Skipping run to save quota.")
         return
 
     try:
-        print(f"🚀 Starting automation for {datetime.date.today()}")
+        # ... [Your existing script generation and upload code] ...
         script, state = generate_viral_script()
-        video_url = fetch_free_background_video()
+        # ... (rest of your successful logic)
         
-        asyncio.run(generate_voiceover(script, "voiceover.mp3"))
-        render_final_video(video_url, "voiceover.mp3", script, "output.mp4")
-        
-        tag = f"Exploring {state} #YorubaHeritage #Nigeria"
-        # The upload process
-        subprocess.run(["python3", "cli.py", "upload", "-v", "output.mp4", "-t", tag], check=True)
-        print("✅ Success: Video uploaded.")
-
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Upload failed: {e}")
-        raise e
     except Exception as e:
-        error_str = str(e)
-        if "429" in error_str or "Quota exceeded" in error_str:
-            print("🛑 Quota limit reached. Locking
+        # 3. If we hit a quota error, create the lock file 
+        # so we don't try again until tomorrow
+        if "429" in str(e) or "Quota exceeded" in str(e):
+            with open(lock_file, "w") as f:
+                f.write("failed")
+        raise e

@@ -1,16 +1,22 @@
 name: Run Quick Test
-on: [workflow_dispatch] # This allows you to click a button to run it
+on: [workflow_dispatch]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      - name: Install dependencies
-        run: pip install requests
-      - name: Run test
-        run: python quick_test.py
+      - uses: actions/checkout@v4
+      
+      - name: Locate and Execute Test
+        run: |
+          # Dynamically find the file path
+          FILE_PATH=$(find . -name "quick_test.py" | head -n 1)
+          
+          if [ -z "$FILE_PATH" ]; then
+            echo "❌ CRITICAL ERROR: quick_test.py not found in the repository."
+            ls -R  # List all files so you can debug the structure
+            exit 1
+          fi
+          
+          echo "✅ Found file at: $FILE_PATH"
+          python3 "$FILE_PATH"

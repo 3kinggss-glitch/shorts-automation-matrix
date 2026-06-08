@@ -1,21 +1,21 @@
 import os
 import subprocess
 
-def test_check():
-    print("--- Environment Test ---")
-    # 1. Check if API Key exists
-    key = os.environ.get("PEXELS_API_KEY")
-    if key:
-        print("✅ Pexels API Key found.")
+def quick_test():
+    print("--- QUICK ENVIRONMENT TEST ---")
+    
+    # 1. Check for API Keys
+    if os.environ.get("PEXELS_API_KEY"):
+        print("✅ Pexels Key found")
     else:
-        print("❌ Pexels API Key missing!")
+        print("❌ Pexels Key missing")
 
-    # 2. Check if FFmpeg is installed (required for video rendering)
+    # 2. Check for FFmpeg (The heart of your video engine)
     try:
         subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
-        print("✅ FFmpeg is installed and ready.")
+        print("✅ FFmpeg is installed")
     except Exception:
-        print("❌ FFmpeg is not found!")
+        print("❌ FFmpeg is missing")
 
 if __name__ == "__main__":
-    test_check()
+    quick_test()

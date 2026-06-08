@@ -1,21 +1,22 @@
-import os
-import subprocess
+name: Run Quick Test
+on: [workflow_dispatch]
 
-def quick_test():
-    print("--- QUICK ENVIRONMENT TEST ---")
-    
-    # 1. Check for API Keys
-    if os.environ.get("PEXELS_API_KEY"):
-        print("✅ Pexels Key found")
-    else:
-        print("❌ Pexels Key missing")
-
-    # 2. Check for FFmpeg (The heart of your video engine)
-    try:
-        subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
-        print("✅ FFmpeg is installed")
-    except Exception:
-        print("❌ FFmpeg is missing")
-
-if __name__ == "__main__":
-    quick_test()
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      # This step lists all files found by the runner
+      - name: List all files in the directory
+        run: ls -R
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      # This looks for the file wherever it might be
+      - name: Find and run test
+        run: |
+          find . -name "quick_test.py" -exec python3 {} \;

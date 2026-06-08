@@ -9,12 +9,13 @@ jobs:
       
       - name: Locate and Execute Test
         run: |
-          # Dynamically find the file path
-          FILE_PATH=$(find . -name "quick_test.py" | head -n 1)
+          # Dynamically find the file path for test_env.py
+          FILE_PATH=$(find . -name "test_env.py" | head -n 1)
           
           if [ -z "$FILE_PATH" ]; then
-            echo "❌ CRITICAL ERROR: quick_test.py not found in the repository."
-            ls -R  # List all files so you can debug the structure
+            echo "❌ CRITICAL ERROR: test_env.py not found in the repository."
+            echo "Files present in this directory:"
+            ls -R
             exit 1
           fi
           
